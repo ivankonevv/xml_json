@@ -35,10 +35,10 @@ type Value struct {
 	Price    int      `xml:"price" json:"price"`
 }
 
-func (items Items) ParseXML(filename string) (*Items, error) {
+func (items *Items) ParseXML(filename string) error {
 	xmlFile, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open `%s` file: %s\n", filename, err)
+		return fmt.Errorf("failed to open `%s` file: %s\n", filename, err)
 	}
 
 	defer func(xmlFile *os.File) {
@@ -51,7 +51,7 @@ func (items Items) ParseXML(filename string) (*Items, error) {
 	byteValue, _ := ioutil.ReadAll(xmlFile)
 
 	if err = xml.Unmarshal(byteValue, &items); err != nil {
-		return nil, fmt.Errorf("error unmarshalling `%s`: %s\n", filename, err)
+		return fmt.Errorf("error unmarshalling `%s`: %s\n", filename, err)
 	}
 
 	for i := range items.Items {
@@ -67,7 +67,7 @@ func (items Items) ParseXML(filename string) (*Items, error) {
 			}
 		}
 	}
-	return &items, nil
+	return nil
 }
 
 func (items Items) CreateJSON(filename string) error {
@@ -91,13 +91,12 @@ func main() {
 		return
 	}
 
-	item, err := items.ParseXML(os.Getenv("XML_FILE_NAME"))
-	if err != nil {
+	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
 		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
 		return
 	}
 
-	if err := item.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
+	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
 		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
 		return
 	}
