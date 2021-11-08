@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items>
+    <item>
+        <url>https://www.opentable.ca/r/friendly-restaurant-perry?avt=eyJ2IjoyLCJtIjoxLCJwIjowLCJzIjowLCJuIjowfQ&amp;corrid=3ab2bdb7-e41c-49f7-9d81-14b6830d0307</url>
+        <phone_number>(207) 853-6610</phone_number>
+        <location>1014 US Route 1</location>
+        <menu>
+            <value>
+                <menu_name>Lunch</menu_name>
+                <price>2000</price>
+            </value>
+            <value>
+                <menu_name>Dinner</menu_name>
+                <price>1499</price>
+            </value>
+        </menu>
+    </item>
+    <item>
+        <url>https://www.opentable.ca/r/another-url</url>
+        <phone_number>(227) 000-1210</phone_number>
+        <location>1014 Cristal street</location>
+        <menu>
+            <value>
+                <menu_name>Lunch</menu_name>
+                <price>7899</price>
+            </value>
+            <value>
+                <menu_name>Dinner</menu_name>
+                <price>5299</price>
+            </value>
+        </menu>
+    </item>
+</items>
