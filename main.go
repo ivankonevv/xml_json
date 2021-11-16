@@ -37,8 +37,6 @@ type Value struct {
 }
 
 func (items *Items) ParseXML(filename string) error {
-
-	defer runRecover()
 	xmlFile, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open `%s` file: %v", filename, err)
