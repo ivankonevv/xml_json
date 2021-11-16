@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -36,22 +37,22 @@ type Value struct {
 }
 
 func (items *Items) ParseXML(filename string) error {
+
+	defer runRecover()
 	xmlFile, err := os.Open(filename)
 	if err != nil {
-		return fmt.Errorf("failed to open `%s` file: %s\n", filename, err)
+		return fmt.Errorf("failed to open `%s` file: %v", filename, err)
 	}
 
-	defer func(xmlFile *os.File) {
-		err := xmlFile.Close()
-		if err != nil {
-			fmt.Printf("failed to close `%s`: %s\n", filename, err)
-		}
-	}(xmlFile)
+	err = xmlFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close `%s`: %v", filename, err)
+	}
 
 	byteValue, _ := ioutil.ReadAll(xmlFile)
 
 	if err = xml.Unmarshal(byteValue, &items); err != nil {
-		return fmt.Errorf("error unmarshalling `%s`: %s\n", filename, err)
+		return fmt.Errorf("error unmarshalling `%s`: %v\n", filename, err)
 	}
 
 	for i := range items.Items {
@@ -73,31 +74,42 @@ func (items *Items) ParseXML(filename string) error {
 func (items Items) CreateJSON(filename string) error {
 	b, err := json.Marshal(items)
 	if err != nil {
-		return fmt.Errorf("error marshalling items: %s\n", err)
+		return fmt.Errorf("error marshalling items: %v\n", err)
 	}
 	err = ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
-		return fmt.Errorf("error writing file `%s`: %s\n", filename, err)
+		return fmt.Errorf("error writing file `%s`: %v\n", filename, err)
 	}
 
 	return nil
 }
 
+func HandleErrors(err error, errText string) {
+	defer runRecover()
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Printf("%s:\n%v", errText, err)
+		return
+	}
+	fmt.Printf("%v. Recovering.\n", err)
+	panic(err)
+
+}
+
+func runRecover() {
+	if r := recover(); r != nil {
+		fmt.Println("Recovered:", r)
+	}
+}
+
 func main() {
 	var items Items
-	err := godotenv.Load(".env.dev")
-	if err != nil {
-		fmt.Printf("error loading .env file")
-		return
-	}
+	// Load env variables
+	HandleErrors(godotenv.Load(".env.dev"), "error loading env variables")
 
-	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
-		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
-		return
-	}
+	// Parse xml file
+	HandleErrors(items.ParseXML(os.Getenv("XML_FILE_NAME")), "an error occurred in ParseXML()")
 
-	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
-		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
-		return
-	}
+	// Write to JSON
+	HandleErrors(items.CreateJSON(os.Getenv("JSON_FILE_NAME")), "an error occurred in CreateJSON()")
+
 }
