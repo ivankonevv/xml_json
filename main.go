@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -42,11 +41,6 @@ func (items *Items) ParseXML(filename string) error {
 		return fmt.Errorf("failed to open `%s` file: %v", filename, err)
 	}
 
-	err = xmlFile.Close()
-	if err != nil {
-		return fmt.Errorf("failed to close `%s`: %v", filename, err)
-	}
-
 	byteValue, _ := ioutil.ReadAll(xmlFile)
 
 	if err = xml.Unmarshal(byteValue, &items); err != nil {
@@ -66,6 +60,11 @@ func (items *Items) ParseXML(filename string) error {
 			}
 		}
 	}
+	err = xmlFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close `%s`: %v", filename, err)
+	}
+
 	return nil
 }
 
@@ -82,32 +81,37 @@ func (items Items) CreateJSON(filename string) error {
 	return nil
 }
 
-func HandleErrors(err error, errText string) {
-	defer runRecover()
-	if errors.Is(err, os.ErrNotExist) {
-		fmt.Printf("%s:\n%v", errText, err)
-		return
-	}
-	fmt.Printf("%v. Recovering.\n", err)
-	panic(err)
-
-}
-
-func runRecover() {
-	if r := recover(); r != nil {
-		fmt.Println("Recovered:", r)
-	}
-}
-
 func main() {
 	var items Items
 	// Load env variables
-	HandleErrors(godotenv.Load(".env.dev"), "error loading env variables")
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("recieved an error: %s\n", err)
+		}
+	}()
+
+	if err := godotenv.Load(".env.dev"); err != nil {
+		if err != os.ErrNotExist {
+			panic(err)
+		}
+		fmt.Printf("error loading env variables\n")
+		return
+	}
 
 	// Parse xml file
-	HandleErrors(items.ParseXML(os.Getenv("XML_FILE_NAME")), "an error occurred in ParseXML()")
-
+	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
+		if err != os.ErrNotExist {
+			panic(err)
+		}
+		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
+		return
+	}
 	// Write to JSON
-	HandleErrors(items.CreateJSON(os.Getenv("JSON_FILE_NAME")), "an error occurred in CreateJSON()")
-
+	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
+		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
+		if err != os.ErrNotExist {
+			panic(err)
+		}
+		return
+	}
 }
