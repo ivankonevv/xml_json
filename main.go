@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -56,7 +57,7 @@ func (items *Items) ParseXML(filename string) error {
 		for n := range items.Items[i].Menu {
 			for x := range items.Items[i].Menu[n].Value {
 				fmt.Println("- Menu: " + items.Items[i].Menu[n].Value[x].MenuName)
-				fmt.Println("-- Price: " + strconv.Itoa(items.Items[i].Menu[n].Value[x].Price))
+				fmt.Println("-- Price: ", strconv.Itoa(items.Items[i].Menu[n].Value[x].Price))
 			}
 		}
 	}
@@ -91,7 +92,7 @@ func main() {
 	}()
 
 	if err := godotenv.Load(".env.dev"); err != nil {
-		if err != os.ErrNotExist {
+		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
 		fmt.Printf("error loading env variables\n")
@@ -100,7 +101,7 @@ func main() {
 
 	// Parse xml file
 	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
-		if err != os.ErrNotExist {
+		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
 		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
@@ -109,7 +110,7 @@ func main() {
 	// Write to JSON
 	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
 		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
-		if err != os.ErrNotExist {
+		if !errors.Is(err, os.ErrNotExist) {
 			panic(err)
 		}
 		return
