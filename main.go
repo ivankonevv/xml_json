@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -38,20 +39,13 @@ type Value struct {
 func (items *Items) ParseXML(filename string) error {
 	xmlFile, err := os.Open(filename)
 	if err != nil {
-		return fmt.Errorf("failed to open `%s` file: %s\n", filename, err)
+		return fmt.Errorf("failed to open `%s` file: %v", filename, err)
 	}
-
-	defer func(xmlFile *os.File) {
-		err := xmlFile.Close()
-		if err != nil {
-			fmt.Printf("failed to close `%s`: %s\n", filename, err)
-		}
-	}(xmlFile)
 
 	byteValue, _ := ioutil.ReadAll(xmlFile)
 
 	if err = xml.Unmarshal(byteValue, &items); err != nil {
-		return fmt.Errorf("error unmarshalling `%s`: %s\n", filename, err)
+		return fmt.Errorf("error unmarshalling `%s`: %v\n", filename, err)
 	}
 
 	for i := range items.Items {
@@ -63,21 +57,26 @@ func (items *Items) ParseXML(filename string) error {
 		for n := range items.Items[i].Menu {
 			for x := range items.Items[i].Menu[n].Value {
 				fmt.Println("- Menu: " + items.Items[i].Menu[n].Value[x].MenuName)
-				fmt.Println("-- Price: " + strconv.Itoa(items.Items[i].Menu[n].Value[x].Price))
+				fmt.Println("-- Price: ", strconv.Itoa(items.Items[i].Menu[n].Value[x].Price))
 			}
 		}
 	}
+	err = xmlFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close `%s`: %v", filename, err)
+	}
+
 	return nil
 }
 
 func (items Items) CreateJSON(filename string) error {
 	b, err := json.Marshal(items)
 	if err != nil {
-		return fmt.Errorf("error marshalling items: %s\n", err)
+		return fmt.Errorf("error marshalling items: %v\n", err)
 	}
 	err = ioutil.WriteFile(filename, b, 0644)
 	if err != nil {
-		return fmt.Errorf("error writing file `%s`: %s\n", filename, err)
+		return fmt.Errorf("error writing file `%s`: %v\n", filename, err)
 	}
 
 	return nil
@@ -85,19 +84,35 @@ func (items Items) CreateJSON(filename string) error {
 
 func main() {
 	var items Items
-	err := godotenv.Load(".env.dev")
-	if err != nil {
-		fmt.Printf("error loading .env file")
+	// Load env variables
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("recieved an error: %s\n", err)
+		}
+	}()
+
+	if err := godotenv.Load(".env.dev"); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			panic(err)
+		}
+		fmt.Printf("error loading env variables\n")
 		return
 	}
 
+	// Parse xml file
 	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			panic(err)
+		}
 		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
 		return
 	}
-
+	// Write to JSON
 	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
 		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			panic(err)
+		}
 		return
 	}
 }
