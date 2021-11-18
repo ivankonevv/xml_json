@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/joho/godotenv v1.4.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
 	golang.org/x/tools v0.1.7 // indirect

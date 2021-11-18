@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/joho/godotenv"
 )
 
@@ -66,6 +68,10 @@ func (items *Items) ParseXML(filename string) error {
 		return fmt.Errorf("failed to close `%s`: %v", filename, err)
 	}
 
+	log.WithFields(log.Fields{
+		"function": "ParseXML()",
+	}).Info("xml parsing process finished successfully.")
+
 	return nil
 }
 
@@ -79,40 +85,63 @@ func (items Items) CreateJSON(filename string) error {
 		return fmt.Errorf("error writing file `%s`: %v\n", filename, err)
 	}
 
+	log.WithFields(log.Fields{
+		"function": "CreateJSON()",
+	}).Info("writing to JSON finished successfully.")
+
 	return nil
 }
 
 func main() {
 	var items Items
-	// Load env variables
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Printf("recieved an error: %s\n", err)
-		}
-	}()
 
+	// Load env variables
 	if err := godotenv.Load(".env.dev"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
+			log.WithFields(log.Fields{
+				"function": "main()",
+			}).Error("init env variables error occurred: ", err)
+			return
 		}
-		fmt.Printf("error loading env variables\n")
+
+		log.WithFields(log.Fields{
+			"function": "main()",
+		}).Error("os.ErrNotExist occurred while loading env variables: ", err)
 		return
 	}
+
+	log.WithFields(log.Fields{
+		"function": "main()",
+	}).Info("env file opened successfully")
 
 	// Parse xml file
 	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
+			log.WithFields(log.Fields{
+				"function": "ParseXML()",
+			}).Error("an error occurred: ", err)
+			return
 		}
-		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
+
+		log.WithFields(log.Fields{
+			"function": "ParseXML()",
+		}).Error("os.ErrNotExist occurred: ", err)
 		return
 	}
+
 	// Write to JSON
 	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
 		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
 		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
+			log.WithFields(log.Fields{
+				"function": "CreateJSON()",
+			}).Error("an error occurred.")
+			return
 		}
+
+		log.WithFields(log.Fields{
+			"function": "CreateJSON()",
+		}).Error("os.ErrNotExist occurred: ", err)
 		return
 	}
 }
