@@ -39,6 +39,7 @@ type Value struct {
 }
 
 func (items *Items) ParseXML(filename string) error {
+
 	xmlFile, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open `%s` file: %v", filename, err)
@@ -68,10 +69,6 @@ func (items *Items) ParseXML(filename string) error {
 		return fmt.Errorf("failed to close `%s`: %v", filename, err)
 	}
 
-	log.WithFields(log.Fields{
-		"function": "ParseXML()",
-	}).Info("xml parsing process finished successfully.")
-
 	return nil
 }
 
@@ -85,62 +82,50 @@ func (items Items) CreateJSON(filename string) error {
 		return fmt.Errorf("error writing file `%s`: %v\n", filename, err)
 	}
 
-	log.WithFields(log.Fields{
-		"function": "CreateJSON()",
-	}).Info("writing to JSON finished successfully.")
-
 	return nil
 }
 
 func main() {
 	var items Items
 
+	// Logger init
+	XMLLogger := log.New().WithField("method", "ParseXML()")
+	CreateJSONLogger := log.New().WithField("method", "CreateJSON()")
+	MainLogger := log.New().WithField("function", "main()")
+
 	// Load env variables
 	if err := godotenv.Load(".env.dev"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			log.WithFields(log.Fields{
-				"function": "main()",
-			}).Error("init env variables error occurred: ", err)
+			MainLogger.Error("init env variables error occurred: ", err)
 			return
 		}
 
-		log.WithFields(log.Fields{
-			"function": "main()",
-		}).Error("os.ErrNotExist occurred while loading env variables: ", err)
+		MainLogger.Error("os.ErrNotExist occurred while loading env variables: ", err)
 		return
 	}
-
-	log.WithFields(log.Fields{
-		"function": "main()",
-	}).Info("env file opened successfully")
+	MainLogger.Info("env file opened successfully")
 
 	// Parse xml file
 	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			log.WithFields(log.Fields{
-				"function": "ParseXML()",
-			}).Error("an error occurred: ", err)
+			XMLLogger.Error("an error occurred: ", err)
 			return
 		}
 
-		log.WithFields(log.Fields{
-			"function": "ParseXML()",
-		}).Error("os.ErrNotExist occurred: ", err)
+		XMLLogger.Error("os.ErrNotExist occurred: ", err)
 		return
 	}
+	XMLLogger.Info("xml parsing process finished successfully.")
 
 	// Write to JSON
 	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			log.WithFields(log.Fields{
-				"function": "CreateJSON()",
-			}).Error("an error occurred.")
+			CreateJSONLogger.Error("an error occurred.")
 			return
 		}
 
-		log.WithFields(log.Fields{
-			"function": "CreateJSON()",
-		}).Error("os.ErrNotExist occurred: ", err)
+		CreateJSONLogger.Error("os.ErrNotExist occurred: ", err)
 		return
 	}
+	CreateJSONLogger.Info("writing to JSON finished successfully.")
 }
