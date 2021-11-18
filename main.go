@@ -131,7 +131,6 @@ func main() {
 
 	// Write to JSON
 	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
-		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
 		if !errors.Is(err, os.ErrNotExist) {
 			log.WithFields(log.Fields{
 				"function": "CreateJSON()",
