@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/joho/godotenv"
 )
 
@@ -37,6 +39,7 @@ type Value struct {
 }
 
 func (items *Items) ParseXML(filename string) error {
+
 	xmlFile, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open `%s` file: %v", filename, err)
@@ -84,35 +87,45 @@ func (items Items) CreateJSON(filename string) error {
 
 func main() {
 	var items Items
-	// Load env variables
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Printf("recieved an error: %s\n", err)
-		}
-	}()
 
+	// Logger init
+	XMLLogger := log.New().WithField("method", "ParseXML()")
+	CreateJSONLogger := log.New().WithField("method", "CreateJSON()")
+	MainLogger := log.New().WithField("function", "main()")
+
+	// Load env variables
 	if err := godotenv.Load(".env.dev"); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
+			MainLogger.Error("init env variables error occurred: ", err)
+			return
 		}
-		fmt.Printf("error loading env variables\n")
+
+		MainLogger.Error("os.ErrNotExist occurred while loading env variables: ", err)
 		return
 	}
+	MainLogger.Info("env file opened successfully")
 
 	// Parse xml file
 	if err := items.ParseXML(os.Getenv("XML_FILE_NAME")); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
+			XMLLogger.Error("an error occurred: ", err)
+			return
 		}
-		fmt.Printf("an error occurred in ParseXML(): %s\n", err)
+
+		XMLLogger.Error("os.ErrNotExist occurred: ", err)
 		return
 	}
+	XMLLogger.Info("xml parsing process finished successfully.")
+
 	// Write to JSON
 	if err := items.CreateJSON(os.Getenv("JSON_FILE_NAME")); err != nil {
-		fmt.Printf("an error occurred in CreateJSON(): %s\n", err)
 		if !errors.Is(err, os.ErrNotExist) {
-			panic(err)
+			CreateJSONLogger.Error("an error occurred.")
+			return
 		}
+
+		CreateJSONLogger.Error("os.ErrNotExist occurred: ", err)
 		return
 	}
+	CreateJSONLogger.Info("writing to JSON finished successfully.")
 }
